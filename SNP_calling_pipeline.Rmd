@@ -17,8 +17,9 @@ output:
       highlight: tango # pygments
       css: "style/style.css"
       toc: true
+      pandoc_args: ["--shift-heading-level-by=-1"]
       toc_float: true
-      toc_depth: 4
+      toc_depth: 3
   #    highlight: pygments
       number_sections: true
       code_folding: hide
@@ -48,7 +49,6 @@ customGreen = "#71CA97"
 
 customRed = "#ff7f7f"
 ```
-
 
 ## Experimental Design
 
@@ -336,7 +336,7 @@ sbatch -a $FAILED_TASKS --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}
 
 ```
 
-# Variant calling
+### Variant calling
 #### Calling variants (using Freebayes){#freebayes}
 
 We used Freebayes *v1.3.5* [@garrisonHaplotypebasedVariantDetection2012] to assign variant probability scores and call variants. Notice that we used diploid mode (`-p 2`) and added the flag `--genotype-qualities` to be able to filter the resulting vcf file based on genotype qualities (`GQ`). 
@@ -385,14 +385,11 @@ mkdir -p $RUN_DIR/FB_array_output
 # submit to the cluster
 ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l) --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4)
 
-# merge variants
-ls -1 $RUN_DIR/FB_array_output/ArME14_ctg_*.combined.vcf | parallel --dry-run "printf \"{}\t%s\t%s\t%s\t%s\n\" \$(cat {} | grep -c -v '^#') \$(cat {} | SnpSift filter \"( GEN[?].DP > $MIN_DP ) & ( GEN[?].GT != './.' )\" | gawk '{if (\$0 ~ /^#/ || (length(\$4)==1 && length(\$5)==1)); print \$0}' | grep -c -v '^#') \$(cat {} | SnpSift filter \"( GEN[?].DP > $MIN_DP ) & ( GEN[?].GT != './.' ) & ( QUAL > 20 )\" | gawk '{if (\$0 ~ /^#/ || (length(\$4)==1 && length(\$5)==1)); print \$0}' | grep -c -v '^#') \$(cat {} | SnpSift filter \"( GEN[?].DP > $MIN_DP ) & ( GEN[?].GT != './.' ) & ( QUAL > 30 )\" | gawk '{if (\$0 ~ /^#/ || (length(\$4)==1 && length(\$5)==1)); print \$0}' | grep -c -v '^#') > {}.stats" > ${RUN_DIR}/freebayes-stats.cmds
 JOBNAME="freebayes-merge"
-echo "cat ${RUN_DIR}/freebayes-stats.cmds | parallel && cat $RUN_DIR/FB_array_output/ArME14_ctg_*.combined.vcf | vcffirstheader | vcfstreamsort -w 1000 | vcfuniq > A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf && bgzip A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf && tabix A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf.gz" > $JOBNAME.cmds
+echo "cat $RUN_DIR/FB_array_output/ArME14_ctg_*.combined.vcf | vcffirstheader | vcfstreamsort -w 1000 | vcfuniq > A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf && bgzip A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf && tabix A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf.gz" > $JOBNAME.cmds
 # submit job to cluster
 sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm
-# combaine stats
-cat <(printf "file\ttotal_snps\tDP${MIN_DP}_filtered_snps\tQUAL20_filtered_snps\tQUAL30_filtered_snps\n") <(cat $RUN_DIR/FB_array_output/ArME14_ctg_*.vcf.stats) > A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid_vcf_stats_$(date +%d_%m_%Y).txt
+
 
 
 ```
@@ -792,8 +789,23 @@ rm -r $RUN_DIR/output/Ar*.g.vcf.gz* $RUN_DIR/bqsr $RUN_DIR/aligned_reads
 
 ```
 
+#### BCFtools stats
+Generate stats for all snp calling files
 
-### MutilQC{#multiqc}
+```{bash bcftools-stats}
+
+# generate stats 
+JOBNAME="bcftools_stats"
+WALLTIME=2:00:00
+MEM=32
+NCORES=8
+CONDA_NAME="genomics"
+find . -maxdepth 2 -name "*.vcf.gz" | parallel --dry-run --rpl "{base} s:.vcf.gz$::"  "bcftools stats -s - {} > {base}.bcfstats.txt" > $JOBNAME.cmds
+# send to the cluster
+sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/parallel_jobs_run.slurm 
+```
+
+#### MutilQC{#multiqc}
 Quality metrics were collected from the raw read QC, alignment and variant calling steps and were consolidated into a single, interactive report for each batch using MultiQC v1.21 [@ewelsMultiQCSummarizeAnalysis2016]. 
 
 ```{bash multiqc}
@@ -815,218 +827,13 @@ rclone copy -P --exclude "**.html" $RUN_DIR GRDC_rabiei:General/Projects/Hayley_
 rclone copy -P --ignore-checksum --ignore-size --include "**.html" $RUN_DIR GRDC_rabiei:General/Projects/Hayley_PhD/Genetics/Murdoch_WGRS/SNP_calling_24_01_2025
 ```
 
+------------------------------------------------------------------------
 
-### Assessing the Sequencing Depth Effect on Clustering
+## General information {-}
 
-* What depth of sequencing is required to achieve good (accurate) clustering of the samples? (how do we measure this)  
-
-To do this we can use the same set of samples (and controls) used to determine the optimal pipeline, but resample the reads (x5, x10, x20, x30 coverage), which is equivalent to 700,000, 1,400,000, 2,800,000, 4,200,000 PE 150bp reads. 
-It would be easiest to do it on the aligned `BAM` files (this can be done with BBtools' `reformat.sh` or `seqtk`, see this [BioStar thread](https://www.biostars.org/p/9563190/#9563191)) 
-
-
-
-
-
-### Run Variant Calling with Selected Pipeline (Murdoch 2025)
-
-The selected pipeline (using `bwa-mem2` for alignment and `freebayes` in diploid mode for variant calling (see sections \@ref(bwamem-align) and \@ref(freebayes)) was then used to call SNPs from the entire population.
-
-#### Process reads and align to the genome
-See detailed methods in Section \@ref(bwamem-align).
-
-```{bash papaya-align-reads}
-# setup workspace
-CONDA_NAME="genomics" 
-mamba install -n $CONDA_NAME mosdepth # megadepth 
-REF_DIR="/scratch/project/adna/A_rabiei/A_rabiei_TECAN_2022/ref_genome"
-GENOME="$REF_DIR/ArME14_v2_CCDM"
-WORK_DIR="/scratch/project/adna/A_rabiei/Murdoch_WGRS"
-FQ_DIR="$WORK_DIR/fungal344"
-# _H3HGFDSX2_CCTCCGGTTG-TGGTGTTATG_L002_R2.fastq.gz
-
-# DATE=$(date +%d_%m_%Y)
-RUN_DIR="$WORK_DIR/Batch2024_FB_SNP_calling"
-BAM_DIR="$RUN_DIR/aligned_reads"
-mkdir -p $BAM_DIR $FQ_DIR/combined_libs/trimmed_reads/QC && cd $RUN_DIR
-
-NCORES=8
-MEM=32
-WALLTIME="3:00:00"
-JOBNAME="MU-batch24-combine-reads"
-
-# merge files from duplicated libraries
-ls -1 $FQ_DIR/*.R1.fq.gz | egrep "E[0-9]+" | sed -r 's:.+\/(.+?).E[0-9]+.R([12]).fq.gz:\1:' | uniq | parallel -a - --dry-run "cat $FQ_DIR/{1}.*.R{2}.fq.gz > $FQ_DIR/combined_libs/{1}.R{2}.fq.gz" ::: 1 2 > $JOBNAME.cmds
-
-# submit the job array to the cluster
-JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/parallel_jobs_run.slurm | cut -f 4 -d " ")
-
-
-# copy across control isolates reads from WGS 2020 batch
-ISOLATES="Ar0020|Ar0023|Ar0212|AR0210|AR0022|AR0128" # AR0242|AR0052|
-find /scratch/project/adna/A_rabiei/AGRF_CAGRF20114478 -name "*.fastq.gz" | egrep -i $ISOLATES | parallel --rpl  "{target} s:.+\/(.+?)_H3HGFDSX2_[CATG-]+_L002_R([12]).fastq.gz:\1.R\2.fq.gz:" ln -s {} $FQ_DIR/combined_libs/{target}
-
-FQ_DIR="$FQ_DIR/combined_libs"
-
-JOBNAME="MU-batch24-fastp-bwa"
-NCORES=12
-MEM=96
-WALLTIME="3:00:00"
-RGPM="DNBseq_T7"
-RGPL="MGI"
-RGPU="E250076899" # also E250076916
-RGCN="MU_SABC"
-
-find $FQ_DIR/*.R1.fq.gz | parallel -k --dry-run --rpl "{file2} s:.R1:.R2:; uq()" --rpl "{sample} s:.+\/(.+?).R1.fq.gz:\1:"  "fastp -i {} -I {file2} --detect_adapter_for_pe -c -l 30 -p -w \$SLURM_CPUS_PER_TASK -z 7 -o $FQ_DIR/trimmed_reads/{sample}_R1.trimmed.fastq.gz -O $FQ_DIR/trimmed_reads/{sample}_R2.trimmed.fastq.gz -j $FQ_DIR/trimmed_reads/QC/{sample}.fastp.json -h $FQ_DIR/trimmed_reads/QC/{sample}.fastp.html && bwa-mem2 mem -R \"@RG\tID:{sample}\tSM:{sample}\tLB:{sample}\tPU:$RGPU\tPL:$RGPL\tPM:$RGPM\tCN:$RGCN\" -t \$[SLURM_CPUS_PER_TASK - 2] $GENOME.fa $FQ_DIR/trimmed_reads/{sample}_R1.trimmed.fastq.gz $FQ_DIR/trimmed_reads/{sample}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename=$BAM_DIR/{sample}.dedup.rg.csorted.bam.bai > $BAM_DIR/{sample}.dedup.rg.csorted.bam ; unset DISPLAY ; qualimap bamqc -bam $BAM_DIR/{sample}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $GENOME.bed -outdir $BAM_DIR/{sample}_bamqc; mosdepth -t \$SLURM_CPUS_PER_TASK -x -n $BAM_DIR/{sample}_bamqc/{sample} $BAM_DIR/{sample}.dedup.rg.csorted.bam"  > $RUN_DIR/$JOBNAME.cmds
-
-# submit to the cluster
-ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l) --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4 -d " ")
-
-# extract coverage information
-find aligned_reads -name "genome_results.txt" | xargs grep "mean coverageData" | sed 's/X$//' | gawk '{sum+=$NF}END{print "# Mean Coverage =", sum/NR}' > MU-batch24-coverage-summary.txt
-find aligned_reads -name "genome_results.txt" | xargs grep "mean coverageData" >> MU-batch24-coverage-summary.txt
-
-```
-
-#### Calling variants using Freebayes
-See detailed methods in Section \@ref(freebayes).
-
-```{bash papaya-wgrs-freebayes}
-WORK_DIR="/scratch/project/adna/A_rabiei/Murdoch_WGRS"
-RUN_DIR="$WORK_DIR/Batch2024_FB_SNP_calling"
-FQ_DIR="$WORK_DIR/fungal344"
-REF_DIR="/scratch/project/adna/A_rabiei/A_rabiei_TECAN_2022/ref_genome"
-GENOME="$REF_DIR/ArME14_v2_CCDM"
-
-CONDA_NAME="genomics"
-
-BAM_DIR="$RUN_DIR/aligned_reads"
-
-# bring in BAM files (if not prepared in the previous step)
-# select isolates
-# ISOLATES="Ar0020|Ar0023|Ar0212|AR0210|AR0022|AR0128" # AR0242|AR0052|
-# find /scratch/project/adna/A_rabiei/AGRF_gatk_13_03_2025/aligned_reads -maxdepth 1 -name "*.rg.csorted.bam*" | egrep -i $ISOLATES | parallel ln -s {} $BAM_DIR/
-# ln -s /scratch/project/adna/A_rabiei/Murdoch_WGRS/GATK_Murdoch_WGRS_04_04_2025/aligned_reads/*.rg.csorted.bam* $BAM_DIR/
-
-# Distributed freebayes (each node runs freebayes-parallel on one contig)
-# start_interactive_job
-conda activate $CONDA_NAME
-# fix library dependencies
-find $CONDA_PREFIX -name "libtabixpp.so*" | parallel ln -s {} {.}.0
-# ln -s $CONDA_PREFIX/lib/libtabixpp.so.1 $CONDA_PREFIX/lib/libtabixpp.so.0
-# split each contig/chromosome to smaller 1e6 bits
-# prepare BAM files
-JOBNAME="prep_bams"
-NCORES=2
-MEM=16
-WALLTIME="1:00:00"
-# submit it as a Slurm job
-echo "~/bin/split_ref_by_bai_datasize.py -s 1e6 -r $GENOME.fa.fai $(ls -1S $BAM_DIR/*.dedup.rg.csorted.bam | tail -n1) > $RUN_DIR/ArME14_target_1e6_regions_chr.tsv" > $JOBNAME.cmds
-# submit the job 
-JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
-
-JOBNAME="Batch2024_WGRS_FB_diploid"
-NCORES=10
-MEM=64
-WALLTIME="10:00:00"
-# RUN_DIR=$WORK_DIR/SNP_calling_24_01_2025
-PLOIDY=2
-MIN_DP=7
-MAX_DP=100000
-# create a folder
-mkdir -p $RUN_DIR/FB_array_output
-# prepare commands
-BAM_FILES=$( find $BAM_DIR -maxdepth 1 -name "*.rg.csorted.bam" | xargs )
-cut -f1 $GENOME.fa.fai | parallel --dry-run "freebayes-parallel <(grep '{}' $RUN_DIR/ArME14_target_1e6_regions_chr.tsv | gawk '{printf \"%s:%s-%s\n\", \$1, \$2, \$3}') \$SLURM_CPUS_PER_TASK -f $GENOME.fa --genotype-qualities -g $MAX_DP -C $MIN_DP -p $PLOIDY $BAM_FILES > $RUN_DIR/FB_array_output/{}.combined.vcf" > $RUN_DIR/$JOBNAME.cmds
-
-# exit interactive job
-# submit to the cluster
-ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l) --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4 -d " ")
-
-FAILED_TASKS=$(sacct -n -X -j $ARRAY_ID -o state%20,jobid%20 | grep -v COMPLETED | gawk '{print $2}' | cut -d"_" -f2 | paste -sd,)
-
-
-# merge VCFs
-JOBNAME="freebayes-merge"
-echo "cat $RUN_DIR/FB_array_output/ArME14_ctg_*.combined.vcf | vcffirstheader | vcfstreamsort -w 1000 | vcfuniq | bgzip -@ \$SLURM_CPUS_PER_TASK -c > A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf.gz; bcftools index A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf.gz" > $JOBNAME.cmds
-# submit job to cluster
-JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
-
-```
-
- 
-#### Create and filter final variant file
-See detailed methods in Section \@ref(vcf-filter).
-
-```{bash papaya-wgrs-vcf-filter}
-CONDA_NAME="genomics"
-# Recode genotypes as missing if below a certain threshold, such as genotyping quality or depth (GQ:DP)  
-# filter only polymorphic bi-allelic SNPs, using QUAL>20, 7<DP<100000
-
-# filter Freebayes variants with SnpSift and vcftools (wipe any heterozygote genotype with DP<7 with bcftools)
-QUAL=30 # 30
-MQ=30
-MAX_DP=100000
-MIN_DP=10
-IND_DP=7
-JOBNAME="Batch2024-wgrs-fb-filter"
-
-echo "bcftools filter -S . -e \"GT=='het' | FMT/DP<$MIN_DP\" $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf.gz -O v | SnpSift filter \"( QUAL>=$QUAL ) & ( countRef()>=1 & countVariant()>=1 )\" | bgzip -@ \$SLURM_CPUS_PER_TASK -c > $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.Q$QUAL.noHet.poly.recode.vcf.gz; bcftools index $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.Q$QUAL.noHet.poly.recode.vcf.gz 
-vcftools --gzvcf $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.Q$QUAL.noHet.poly.recode.vcf.gz --recode --recode-INFO-all --minQ $QUAL --remove-indels -c | bgzip -@ \$SLURM_CPUS_PER_TASK -c > $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.snps.Q$QUAL.noHet.poly.recode.vcf.gz ; bcftools index $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.snps.Q$QUAL.noHet.poly.recode.vcf.gz
-vcftools --gzvcf $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.Q$QUAL.noHet.poly.recode.vcf.gz --recode --recode-INFO-all --minQ $QUAL --keep-only-indels -c | bgzip -@ \$SLURM_CPUS_PER_TASK -c  > $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.indels.Q$QUAL.noHet.poly.recode.vcf.gz; bcftools index $RUN_DIR/A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.indels.Q$QUAL.noHet.poly.recode.vcf.gz "> $RUN_DIR/$JOBNAME.cmds
-
-NCORES=6
-MEM=32
-WALLTIME="1:00:00"
-JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
-
-#bcftools filter -S . -e "GT=='het' | FMT/DP<$MIN_DP" A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.vcf.gz -O v | SnpSift filter "( QUAL>=$QUAL ) & ( DP<=$MAX_DP ) & ( DP>=$MIN_DP ) & ( countRef()>=1 & countVariant()>=1 )" | vcftools --vcf - --recode --recode-INFO-all --minQ $QUAL --max-missing 0.75 --remove-indels -c | bgzip -o A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.Q$QUAL.GT75.noRep.noHet.poly.recode.vcf.gz && tabix A_rabiei_2024_Murdoch_WGRS_ArME14_v2.bwa2.fb.diploid.Q$QUAL.GT75.noRep.noHet.poly.recode.vcf.gz
-# generate stats 
-JOBNAME="bcftools_stats"
-WALLTIME=2:00:00
-MEM=32
-NCORES=8
-find . -name "*.vcf.gz" | parallel --dry-run "bcftools stats -s - {} > {.}.bcfstats.txt" > $JOBNAME.cmds
-# send to the cluster
-JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/parallel_jobs_run.slurm | cut -f 4 -d " ")
-```
-
-An in-house R script (`estimate_error_rates_vcf_files.R`) was used to estimate the error rates based on the presence of duplicated samples.
-
-
-#### MutilQC
-See detailed methods in Section \@ref(multiqc).
-```{bash batch2024-wgrs-multiqc}
-WORK_DIR="/scratch/project/adna/A_rabiei/Murdoch_WGRS"
-RUN_DIR="$WORK_DIR/Batch2024_FB_SNP_calling"
-cd $RUN_DIR
-NCORES=8
-MEM=32
-WALLTIME="10:00:00"
-JOBNAME="Batch2024-wgrs-multiqc"
-# link fastp reports
-ln -s $FQ_DIR/trimmed_reads/QC $RUN_DIR/
-# multiqc report
-MULTIQC_JOB=QC_$(date +%d_%m_%Y)
-# Prepare MultiQC command
-echo "multiqc --interactive -z --force -i $MULTIQC_JOB -o $MULTIQC_JOB ." > $JOBNAME.cmds
-# submit the job 
-JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
-# Done!
-mkdir -p slurm_logs
-mv *.log slurm_logs/
-# Copy files to SharePoint
-rclone copy -P --exclude "**/*.html" $RUN_DIR GRDC_rabiei:General/Projects/Hayley_PhD/Genetics/Murdoch_WGRS/Batch2024_FB_SNP_calling
-# Copy html files to SharePoint
-rclone copy -P --ignore-checksum --ignore-size --include "**/*.html" $RUN_DIR GRDC_rabiei:General/Projects/Hayley_PhD/Genetics/Murdoch_WGRS/Batch2024_FB_SNP_calling
-```
-
-## General information
-
-This document was last updated on `r format(Sys.Date(), '%d %B %Y')` using R Markdown (built with `r R.version.string`). The source code for this website can be found on <https://github.com/IdoBar/HPC_SNP_calling_documentation>.
+This document was last updated on `r format(Sys.Date(), '%d %B %Y')` using R Markdown (built with `r R.version.string`). The source code for this website can be found on <https://github.com/IdoBar/SNP_Calling_Papaya>.
 
 Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. It is especially powerful at authoring documents and reports which include code and can execute code and use the results in the output. For more details on using R Markdown see <http://rmarkdown.rstudio.com>, [R Markdown: The Definitive Guide](https://bookdown.org/yihui/rmarkdown/) and [Rmarkdown cheatsheet](https://rstudio.github.io/cheatsheets/html/rmarkdown.html).
 
-------------------------------------------------------------------------
-
-## Bibliography
+## Bibliography {-}
 
