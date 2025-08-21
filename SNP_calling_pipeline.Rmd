@@ -1,6 +1,6 @@
 ---
 title: "Papaya SNP calling from WGRS pipeline"
-author: "Leela Manoharan & Ido Bar"
+author: "Leela Manoharan and Ido Bar"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 always_allow_html: yes
 output: 
