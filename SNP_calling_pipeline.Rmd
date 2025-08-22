@@ -236,7 +236,7 @@ mamba install -n base libgcc gnutls libuuid readline cmake git tmux libgfortran 
 mamba create -n $CONDA_NAME sra-tools bcbio-gff libgd xorg-libxpm \
                 libpng libjpeg-turbo jpeg snpsift biobambam bwa-mem2 sambamba \
                 libtiff qualimap multiqc bbmap fastp freebayes bedops \
-                entrez-direct parallel-fastq-dump mosdepth 
+                entrez-direct parallel-fastq-dump mosdepth bamtools
 # Clean extra space
 # conda update -n base conda
 conda clean -y --all" > $JOBNAME.cmds
@@ -303,13 +303,15 @@ Reads were mapped to the *C. papaya* SunUp reference genome assembled and annota
 Mapping quality and coverage were assessed with Qualimap v.2.2.2-dev [@okonechnikovQualimapAdvancedMultisample2016] and Mosdepth v0.3.10 [@pedersenMosdepthQuickCoverage2018] and were consolidated along with quality-trimming measures into a single, interactive report for each batch using MultiQC v1.21 [@ewelsMultiQCSummarizeAnalysis2016]. 
 <!-- Samples with less than 20% mapping and x15 coverage were removed from the rest of the analysis (see details in the [MultiQC report](raw_data/QC_11_10_2021_multiqc_report.html)). -->
 
-```{bash process-align-reads}
+```{bash process-align-sra-reads}
 # setup workspace
 CONDA_NAME="genomics" 
 WORK_DIR="/scratch/project/adna/leela"
 # save the run date
-DATE=$(date +%d_%m_%Y)
-RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
+#DATE=$(date +%d_%m_%Y)
+#RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
+RUN_DIR="$WORK_DIR/FB_SNP_calling_21_08_2025"
+REFERENCE="/scratch/project/adna/Papaya/SunUp_reference_genome/GWHBFSC00000000"
 # BAM_DIR="$RUN_DIR/aligned_reads"
 mkdir -p  $RUN_DIR && cd $RUN_DIR
 NCORES=12
@@ -322,6 +324,12 @@ JOBNAME="SRA-fastp-bwa"
 # fields in SRA csv file: ID:{1},SM:{30},PL:{19},PM:{20}
 cat $WORK_DIR/Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv | parallel --csv --dry-run " prefetch {1} && cd {1} && parallel-fastq-dump --split-3 -t \$SLURM_CPUS_PER_TASK --sra-id {1}.sra --gzip && fastp -i {1}_1.fastq.gz -I {1}_2.fastq.gz --detect_adapter_for_pe -c -l 30 -p -w \$SLURM_CPUS_PER_TASK -z 7 -o {1}_R1.trimmed.fastq.gz -O {1}_R2.trimmed.fastq.gz -j {1}.fastp.json -h {1}.fastp.html && bwa-mem2 mem -R \"@RG\tID:{1}\tSM:{30}\tLB:{30}\tPL:{19}\tPM:{20}\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz {1}_R1.trimmed.fastq.gz {1}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename={1}.dedup.rg.csorted.bam.bai > {1}.dedup.rg.csorted.bam && mkdir -p {1}_bamqc &&  mosdepth -t \$SLURM_CPUS_PER_TASK -x -n {1}_bamqc/{1} {1}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam {1}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir {1}_bamqc && rm {1}.sra {1}_[12].fastq.gz"  > $RUN_DIR/$JOBNAME.cmds
 
+# check how many commands were written
+wc -l $RUN_DIR/$JOBNAME.cmds
+# look at the first command and make sure it looks correct
+head -n1 $RUN_DIR/$JOBNAME.cmds
+
+
 # submit to the cluster
 ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l)%10 --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4)
 
@@ -333,6 +341,117 @@ WALLTIME="10:00:00"
 # retry failed jobs
 sbatch -a $FAILED_TASKS --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm 
 
+
+```
+
+Just align the pre-processed reads.
+
+```{bash align-sra-reads}
+# setup workspace
+CONDA_NAME="genomics" 
+WORK_DIR="/scratch/project/adna/leela"
+# save the run date
+#DATE=$(date +%d_%m_%Y)
+#RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
+RUN_DIR="$WORK_DIR/FB_SNP_calling_21_08_2025"
+REFERENCE="/scratch/project/adna/Papaya/SunUp_reference_genome/GWHBFSC00000000"
+# BAM_DIR="$RUN_DIR/aligned_reads"
+mkdir -p  $RUN_DIR && cd $RUN_DIR
+NCORES=12
+MEM=96
+WALLTIME="5:00:00"
+RGPM="Illumina NovaSeq 6000"
+RGPL="Illumina"
+JOBNAME="SRA-bwa"
+
+# fields in SRA csv file: ID:{1},SM:{30},PL:{19},PM:{20}
+cat $WORK_DIR/Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv | parallel --csv --dry-run "bwa-mem2 mem -R \"@RG\tID:{1}\tSM:{30}\tLB:{30}\tPL:{19}\tPM:{20}\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz {1}_R1.trimmed.fastq.gz {1}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename={1}.dedup.rg.csorted.bam.bai > {1}.dedup.rg.csorted.bam && mkdir -p {1}_bamqc &&  mosdepth -t \$SLURM_CPUS_PER_TASK -x -n {1}_bamqc/{1} {1}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam {1}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir {1}_bamqc && rm {1}.sra {1}_[12].fastq.gz"  > $RUN_DIR/$JOBNAME.cmds
+
+# check how many commands were written
+wc -l $RUN_DIR/$JOBNAME.cmds
+# look at the first command and make sure it looks correct
+head -n1 $RUN_DIR/$JOBNAME.cmds
+# submit to the cluster
+ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l)%10 --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4)
+
+# find if any jobs failed
+FAILED_TASKS=$(sacct -n -X -j $ARRAY_ID -o state%20,jobid%20 | grep -v COMPLETED | gawk '{print $2}' | cut -d"_" -f2 | paste -sd,)
+# Change job directives (if needed)
+# MEM=64
+WALLTIME="10:00:00"
+# retry failed jobs
+sbatch -a $FAILED_TASKS --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm 
+
+
+```
+
+Separately align the WGRS reads generated on an MGI DNBSEQ-T7 at SABC (Murdoch University).
+
+```{bash process-align-wgrs-reads}
+# setup workspace
+CONDA_NAME="genomics" 
+WORK_DIR="/scratch/project/adna/leela"
+# save the run date
+#DATE=$(date +%d_%m_%Y)
+#RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
+RUN_DIR="$WORK_DIR/FB_SNP_calling_21_08_2025"
+REFERENCE="/scratch/project/adna/Papaya/SunUp_reference_genome/GWHBFSC00000000"
+FQ_DIR="/scratch/project/adna/Papaya/Murdoch_sequencing/papaya_wgrs"
+BAM_DIR="$RUN_DIR/aligned_reads"
+mkdir -p $FQ_DIR/trimmed_reads/QC $RUN_DIR && cd $RUN_DIR
+NCORES=12
+MEM=96
+WALLTIME="5:00:00"
+RGPM="DNBseq_T7"
+RGPL="MGI"
+# RGPU="E250038400"
+RGCN="MU_SABC"
+
+JOBNAME="wgrs-fastp-bwa"
+IGNORE_FQ="Eksotika_PAPHI_88|Holland_6_PAPHI_87"
+
+find $FQ_DIR/*.R1.fq.gz | egrep -v $IGNORE_FQ | parallel -k --dry-run --rpl "{file2} s:.R1:.R2:; uq()" --rpl "{sample} s:.+\/([^\.]+)\.(E\d+).+.fq.gz:\1:" --rpl "{rgpu} s:.+\/([^\.]+)\.(E\d+).+.fq.gz:\2:"  "fastp -i {} -I {file2} --detect_adapter_for_pe -c -l 30 -p -w \$SLURM_CPUS_PER_TASK -z 7 -o $FQ_DIR/trimmed_reads/{sample}.{rgpu}.R1.trimmed.fastq.gz -O $FQ_DIR/trimmed_reads/{sample}.{rgpu}.R2.trimmed.fastq.gz -j $FQ_DIR/trimmed_reads/QC/{sample}.{rgpu}.fastp.json -h $FQ_DIR/trimmed_reads/QC/{sample}.{rgpu}.fastp.html; mkdir -p $BAM_DIR/{sample}/bamqc; bwa-mem2 mem -R \"@RG\tID:{sample}.{rgpu}\tSM:{sample}\tLB:{sample}.{rgpu}\tPU:{rgpu}\tPL:$RGPL\tPM:$RGPM\tCN:$RGCN\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz $FQ_DIR/trimmed_reads/{sample}.{rgpu}.R1.trimmed.fastq.gz $FQ_DIR/trimmed_reads/{sample}.{rgpu}.R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename=$BAM_DIR/{sample}/{sample}.{rgpu}.dedup.rg.csorted.bam.bai > $BAM_DIR/{sample}/{sample}.{rgpu}.dedup.rg.csorted.bam ; mosdepth -t \$SLURM_CPUS_PER_TASK -x -n $BAM_DIR/{sample}/bamqc/{sample}.{rgpu} {sample}.{rgpu}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam $BAM_DIR/{sample}/{sample}.{rgpu}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir $BAM_DIR/{sample}/bamqc/{sample}.{rgpu}"  > $RUN_DIR/$JOBNAME.cmds
+
+# check how many commands were written
+wc -l $RUN_DIR/$JOBNAME.cmds
+# look at the first command and make sure it looks correct
+head -n1 $RUN_DIR/$JOBNAME.cmds
+# submit to the cluster
+ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l)%10 --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4)
+
+# find if any jobs failed
+FAILED_TASKS=$(sacct -n -X -j $ARRAY_ID -o state%20,jobid%20 | grep "FAILED" | gawk '{print $2}' | cut -d"_" -f2 | paste -sd,)
+# Change job directives (if needed)
+# MEM=64
+WALLTIME="10:00:00"
+# retry failed jobs
+sbatch -a $FAILED_TASKS --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm
+
+```
+
+
+Duplicated `BAM` files (of the same sample that was sequenced more than once) were merged after alignment with samtools v1.21 [@danecekTwelveYearsSAMtools2021; @liSequenceAlignmentMap2009a] or bamtools v2.5.2.
+
+```{bash merge-bams}
+# setup workspace
+CONDA_NAME="genomics" 
+WORK_DIR="/scratch/project/adna/leela"
+# save the run date
+#DATE=$(date +%d_%m_%Y)
+#RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
+RUN_DIR="$WORK_DIR/FB_SNP_calling_21_08_2025"
+BAM_DIR="$RUN_DIR/aligned_reads"
+
+NCORES=8
+MEM=48
+JOBNAME="wgrs-merge-bams"
+
+# find $BAM_DIR -maxdepth 1 -mindepth 1 -type d
+find $BAM_DIR -name "*.bam" | xargs dirname | sort | uniq | parallel --dry-run "ls -1 {}/{/}.*.bam > {}/{/}.bamlist; bamtools merge -list {}/{/}.bamlist -out {}/{/}.bam; bamtools index -in {}/{/}.bam; rm {}/{/}.*.bam" > $RUN_DIR/$JOBNAME.cmds
+
+
+# submit to the cluster
+ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l)%10 --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4)
 
 ```
 
