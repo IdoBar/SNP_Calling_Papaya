@@ -272,7 +272,7 @@ zcat $REFERENCE.genome.fasta.gz | bgzip -c -I $REFERENCE.fasta.gz.gzi -@ $SLURM_
 
 ```
 
-Download the raw papaya whole-genome resequencing files (`.fastq.gz`) from NCBI SRA (WGS libraries from [PRJNA727683](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA727683/)).
+Download the raw papaya whole-genome resequencing files (`.fastq.gz`) from NCBI SRA (WGS libraries from [PRJNA727683](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA727683/) and [UPDATE BIOPROJECT](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA727683/)).
 Reference genomes of cultivars Solo SunUp (GMO for PRSV resistance, accession [GWHBFSC00000000](https://ngdc.cncb.ac.cn/gwh/Assembly/23161/show), corresponding to NCBI accession [GCA_021527605.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_021527605.1/), but including gene annotation) and Sunset (accession [GWHBFSD00000000](https://ngdc.cncb.ac.cn/gwh/Assembly/23162/show), corresponding to NCBI [GCA_022788785.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_022788785.1/), but including gene annotation; @yueSunUpSunsetGenomes2022) were downloaded from the [Genome Warehouse](https://ngdc.cncb.ac.cn/gwh).
 
 ```{bash retrieve-files}
@@ -290,6 +290,11 @@ conda activate $CONDA_NAME
 # get WGS information from the SRA 
 esearch -db sra -query PRJNA727683 | efetch -format runinfo  > Cpapaya_PRJNA727683_SRA_runinfo.csv
 cat Cpapaya_PRJNA727683_SRA_runinfo.csv | gawk -F "," '$13=="WGS"' > Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv
+
+# get WGS information from the SRA 
+esearch -db sra -query XXXXX | efetch -format runinfo  | gawk -F "," '$13=="WGS"' > Cpapaya_XXXX_SRA_WGS_runinfo.csv
+
+cat Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv Cpapaya_XXXX_SRA_WGS_runinfo.csv > Cpapaya_All_SRA_WGS_runinfo.csv
 
 # cat Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv | cut -f 1 -d "," | parallel --dry-run "prefetch {};  parallel-fastq-dump --split-3 -t \$SLURM_CPUS_PER_TASK --sra-id {}/{}.sra --gzip -O {}" > $JOBNAME.cmds
 
@@ -322,7 +327,7 @@ RGPL="Illumina"
 JOBNAME="SRA-fastp-bwa"
 
 # fields in SRA csv file: ID:{1},SM:{30},PL:{19},PM:{20}
-cat $WORK_DIR/Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv | parallel --csv --dry-run " prefetch {1} && cd {1} && parallel-fastq-dump --split-3 -t \$SLURM_CPUS_PER_TASK --sra-id {1}.sra --gzip && fastp -i {1}_1.fastq.gz -I {1}_2.fastq.gz --detect_adapter_for_pe -c -l 30 -p -w \$SLURM_CPUS_PER_TASK -z 7 -o {1}_R1.trimmed.fastq.gz -O {1}_R2.trimmed.fastq.gz -j {1}.fastp.json -h {1}.fastp.html && bwa-mem2 mem -R \"@RG\tID:{1}\tSM:{30}\tLB:{30}\tPL:{19}\tPM:{20}\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz {1}_R1.trimmed.fastq.gz {1}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename={1}.dedup.rg.csorted.bam.bai > {1}.dedup.rg.csorted.bam && mkdir -p {1}_bamqc &&  mosdepth -t \$SLURM_CPUS_PER_TASK -x -n {1}_bamqc/{1} {1}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam {1}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir {1}_bamqc && rm {1}.sra {1}_[12].fastq.gz"  > $RUN_DIR/$JOBNAME.cmds
+cat $WORK_DIR/Cpapaya_All_SRA_WGS_runinfo.csv | parallel --csv --dry-run " prefetch {1} && cd {1} && parallel-fastq-dump --split-3 -t \$SLURM_CPUS_PER_TASK --sra-id {1}.sra --gzip && fastp -i {1}_1.fastq.gz -I {1}_2.fastq.gz --detect_adapter_for_pe -c -l 30 -p -w \$SLURM_CPUS_PER_TASK -z 7 -o {1}_R1.trimmed.fastq.gz -O {1}_R2.trimmed.fastq.gz -j {1}.fastp.json -h {1}.fastp.html && bwa-mem2 mem -R \"@RG\tID:{1}\tSM:{30}\tLB:{30}\tPL:{19}\tPM:{20}\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz {1}_R1.trimmed.fastq.gz {1}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename={1}.dedup.rg.csorted.bam.bai > {1}.dedup.rg.csorted.bam && mkdir -p {1}_bamqc &&  mosdepth -t \$SLURM_CPUS_PER_TASK -x -n {1}_bamqc/{1} {1}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam {1}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir {1}_bamqc && rm {1}.sra {1}_[12].fastq.gz"  > $RUN_DIR/$JOBNAME.cmds
 
 # check how many commands were written
 wc -l $RUN_DIR/$JOBNAME.cmds
@@ -365,7 +370,7 @@ RGPL="Illumina"
 JOBNAME="SRA-bwa"
 
 # fields in SRA csv file: ID:{1},SM:{30},PL:{19},PM:{20}
-cat $WORK_DIR/Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv | parallel --csv --dry-run "bwa-mem2 mem -R \"@RG\tID:{1}\tSM:{30}\tLB:{30}\tPL:{19}\tPM:{20}\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz {1}_R1.trimmed.fastq.gz {1}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename={1}.dedup.rg.csorted.bam.bai > {1}.dedup.rg.csorted.bam && mkdir -p {1}_bamqc &&  mosdepth -t \$SLURM_CPUS_PER_TASK -x -n {1}_bamqc/{1} {1}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam {1}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir {1}_bamqc && rm {1}.sra {1}_[12].fastq.gz"  > $RUN_DIR/$JOBNAME.cmds
+cat $WORK_DIR/Cpapaya_All_SRA_WGS_runinfo.csv | parallel --csv --dry-run "bwa-mem2 mem -R \"@RG\tID:{1}\tSM:{30}\tLB:{30}\tPL:{19}\tPM:{20}\" -t \$[SLURM_CPUS_PER_TASK - 2] $REFERENCE.fasta.gz {1}_R1.trimmed.fastq.gz {1}_R2.trimmed.fastq.gz | bamsormadup tmpfile=\$TMPDIR/bamsormadup_\$(hostname)_\$SLURM_ARRAY_JOB_ID inputformat=sam threads=\$[SLURM_CPUS_PER_TASK - 2] indexfilename={1}.dedup.rg.csorted.bam.bai > {1}.dedup.rg.csorted.bam && mkdir -p {1}_bamqc &&  mosdepth -t \$SLURM_CPUS_PER_TASK -x -n {1}_bamqc/{1} {1}.dedup.rg.csorted.bam; unset DISPLAY; qualimap bamqc -bam {1}.dedup.rg.csorted.bam --java-mem-size=32G -c -gff $REFERENCE.bed -outdir {1}_bamqc && rm {1}.sra {1}_[12].fastq.gz"  > $RUN_DIR/$JOBNAME.cmds
 
 # check how many commands were written
 wc -l $RUN_DIR/$JOBNAME.cmds
