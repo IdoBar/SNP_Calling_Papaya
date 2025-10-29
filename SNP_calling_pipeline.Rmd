@@ -1,6 +1,6 @@
 ---
-title: "Papaya SNP calling from WGRS pipeline"
-author: "Leela Manoharan and Ido Bar"
+title: "Coffee SNP calling from WGRS pipeline"
+author: "Fawad Ali and Ido Bar"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 always_allow_html: yes
 output: 
@@ -24,7 +24,7 @@ output:
       number_sections: true
       code_folding: hide
 #      keep_md: true
-bibliography: ["style/papaya_gwas_refs.json"]
+bibliography: ["style/snp_calling_refs.json"]
 csl: style/springer-basic-improved-author-date-with-italic-et-al-period.csl
 ---
 
@@ -42,7 +42,7 @@ knitr::opts_chunk$set(list(echo = TRUE, eval=FALSE, message=FALSE))
 
 
 pacman::p_load(char = basename(my_packages), install = FALSE, update = FALSE)
-rbbt::bbt_write_bib('style/papaya_gwas_refs.json', overwrite = TRUE)
+rbbt::bbt_write_bib('style/snp_calling_refs.json', overwrite = TRUE)
 
 customGreen0 = "#DeF7E9"
 
@@ -53,114 +53,42 @@ customRed = "#ff7f7f"
 
 ## Experimental Design
 
-Fresh leaf samples were collected from XX genotypes of papaya (*Carica papaya*) from Rocky Top farm in North Queensland in 2023-24 and were stored in liquid Nitrogen and were stored in -80°C until DNA extraction. DNA was extracted from the leaf samples using the Omega Biotek E-Z 96 Plant DNA extraction kit. The extracted DNA was shipped in dry ice to the State Agricultural Biotechnology Centre ([SABC](https://www.murdoch.edu.au/research/sabc)) at Murdoch University (led by Prof. Rajeev Varshney). DNA libraries were prepared for whole-genome resequencing (WGRS) on an MGI DNBSEQ-T7, producing 150 bp paired-end reads.
+Fresh leaf samples were collected from 19 coffee genotypes (*Coffea arabica/robusta/liberica*) from farms in the Atherton Tablelands region in north Queensland in 2024-25. The leaf tissues were flash frozen in liquid Nitrogen and stored in -80°C until DNA extraction. DNA was extracted from the leaf samples using the ??? Plant DNA extraction kit. The extracted DNA was shipped in dry ice to the Beijing Genomic Institute (BGI) in China. DNA libraries were prepared for whole-genome resequencing (WGRS) on an MGI DNBSEQ-T7, producing 150 bp paired-end reads.
 
 
 ### Samples used in this study
 
 ```{r sample-metadata, eval = TRUE}
-sabc_metadata <- read_tsv('data/papaya_wgrs_Murdoch_files.txt') 
-sabc_meta_sum <- sabc_metadata %>% 
-  mutate(genotype=sub("\\.E2.+", "", filename)) %>% 
-  group_by(genotype) %>% 
-  summarise(total_size_mb = sum(size)/1e6, file_num=n())
-write_xlsx(sabc_meta_sum, "data/papaya_WGRS_SRA_metadata.xlsx", sheet = "SABC_WGRS_sum",
-           overwritesheet=TRUE)
-
-sra_sheets <- excel_sheets("data/Cpapaya_All_SRA_WGS_metadata.xlsx") %>% 
-  grep("sra_wgs$", ., value = TRUE)
-sra_seq_data <- map(sra_sheets, .f = ~read_excel("data/Cpapaya_All_SRA_WGS_metadata.xlsx", sheet =.x) %>% 
-  clean_names() %>%
-    mutate(sample_title = gsub("\\s+", "", sample_name))) %>% 
-  list_rbind() %>% 
-  mutate(platform = ifelse(is.na(platform), 
-                           sub("\\s.+$","", instrument), platform),
-         model = ifelse(is.na(model), 
-                           sub("^[^ ]+\\s+","", instrument), model))
-
-
-
-sra_sample_data <- read_excel("data/Cpapaya_PRJNA727683_sra_wgs.xlsx", sheet = 'Accession_table') %>% 
-  clean_names() %>% 
-  mutate(cultivar_name=sub("‘*(.+)'", "\\1", cultivar_name),
-         name = gsub("\\s+", "", name))
-
-
-
-# sra_seq_data$sample_title[!sra_seq_data$sample_title %in%  sra_sample_data$name]
-
-sra_combined <- sra_seq_data  %>% 
-  select(name=sample_title, total_size_mb, sra_accession) %>% 
-  left_join(sra_sample_data)
-
-#sra_combined %>% filter(is.na(sex))
-# sra_combined %>% 
-#   mutate(sra_accession = glue::glue("[{sra_accession}](https://www.ncbi.nlm.nih.gov/sra/{sra_accession})"),
-#         sra_accession = map(sra_accession, gt::md),
-#         total_size_mb = comma(total_size_mb)) %>%
-#   clean_names(case="title", abbreviations="SRA") %>% 
-#     gt()
-
-
-# sra_combined %>% 
+sample_metadata <- read_xlsx('data/Complete_coffee_genotype_list.xlsx', sheet = 1) 
+# paste0('<a  target=_blank href=', path, '>', file,'</a>' )
+# sample_metadata %>% 
 #   mutate(sra_accession = glue::glue("<a href=https://www.ncbi.nlm.nih.gov/sra/{sra_accession}>{sra_accession}</a>")
 #         # total_size_mb = comma(total_size_mb), 
 #          # sra_accession = map(sra_accession, gt::md)
 #         ) %>%
 #         clean_names(case="title", abbreviations="SRA") %>%
-# formattable(.,
-#             list(
-#   `Total Size Mb` = color_bar(customGreen)
-# ))
-
-# sra_combined %>% 
-#   mutate(sra_accession = glue::glue("[{sra_accession}](https://www.ncbi.nlm.nih.gov/sra/{sra_accession})"),
-#         sra_accession = map(sra_accession, gt::md)) %>% 
-#         # total_size_mb = comma(total_size_mb)) %>%
-#   clean_names(case="title", abbreviations="SRA") %>% 
-# reactable(.,
-#           columns = list(
-#             "Total Size Mb" = colDef(
-#             cell = data_bars(.,
-#                      fill_color = viridis(5),
-#                      background = "lightgrey",
-#                      text_position = "inside-end",
-#                      max_value = 15000)
-#             )
-#           ))
-
-```
-
-```{r sra-table, eval=TRUE, echo=FALSE}
-# paste0('<a  target=_blank href=', path, '>', file,'</a>' )
-sra_combined %>% 
-  mutate(sra_accession = glue::glue("<a href=https://www.ncbi.nlm.nih.gov/sra/{sra_accession}>{sra_accession}</a>")
-        # total_size_mb = comma(total_size_mb), 
-         # sra_accession = map(sra_accession, gt::md)
-        ) %>%
-        clean_names(case="title", abbreviations="SRA") %>%
-    datatable(., extensions = c('ColReorder','Responsive'), options = list(colReorder = TRUE),
-              # colnames = snakecase::to_title_case(names(.)), 
-              # caption = 'Table 1: This is a simple caption for the table.',
-              escape = FALSE) %>% formatRound('Total Size Mb') %>% 
-  formatStyle(
-    'Total Size Mb',
-    background = styleColorBar(sra_combined$total_size_mb, 'lightblue'),
-    backgroundSize = '100% 90%',
-    backgroundRepeat = 'no-repeat',
-    backgroundPosition = 'center'
-  )
+#     datatable(., extensions = c('ColReorder','Responsive'), options = list(colReorder = TRUE),
+#               # colnames = snakecase::to_title_case(names(.)), 
+#               # caption = 'Table 1: This is a simple caption for the table.',
+#               escape = FALSE) %>% formatRound('Total Size Mb') %>% 
+#   formatStyle(
+#     'Total Size Mb',
+#     background = styleColorBar(sra_combined$total_size_mb, 'lightblue'),
+#     backgroundSize = '100% 90%',
+#     backgroundRepeat = 'no-repeat',
+#     backgroundPosition = 'center'
+#   )
 
 ```
 
 ## Aims
 
-1. Assess the genetic diversity of papaya genotypes in the Australian collection  
-  - Align the sequencing reads to a reference genome (Solo Sunset or Holland_5)  
+1. Assess the genetic diversity of coffee genotypes in the Tablelands region  
+  - Align the sequencing reads to a reference genome (Coffea Arabica ET-39, [GCF_036785885.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_036785885.1/))  
   - Call variants (SNPs)  
   - Infer phylogeny and diversity
-2. Identify variants associated with productivity and fruit quality traits   
-  - Assemble a pangenome (or use the one from Murdoch)  
+2. Identify variants associated with productivity and bean quality traits   
+  - Assemble a pangenome  
   - Align WGRS reads to the pangenome using `vg-giraffe`  
   - Call variants  
   - Perform genome wide association study (GWAS) for a range of traits
@@ -170,7 +98,7 @@ sra_combined %>%
 
 ### Overview of Analysis Pipeline
 
-0.  Obtain sequencing data from public repositories (NCBI SRA) or from SABC
+0.  Obtain sequencing data from BGI and maybe from public repositories (NCBI SRA)  
 1.  Data pre-processing:  
     a.  Quality check  
     b.  Adaptor trimming  
@@ -248,8 +176,8 @@ mamba install -n base libgcc gnutls libuuid readline cmake git tmux libgfortran 
 
 mamba create -n $CONDA_NAME sra-tools bcbio-gff libgd xorg-libxpm \
                 libpng libjpeg-turbo jpeg snpsift biobambam bwa-mem2 sambamba \
-                libtiff qualimap multiqc bbmap fastp freebayes bedops \
-                entrez-direct parallel-fastq-dump mosdepth bamtools perl-text-csv 
+                libtiff qualimap multiqc bbmap fastp freebayes bedops snvphyl-tools \
+                entrez-direct ncbi-datasets-cli parallel-fastq-dump mosdepth bamtools perl-text-csv 
 # Clean extra space
 # conda update -n base conda
 conda clean -y --all" > $JOBNAME.cmds
@@ -259,22 +187,22 @@ JOB_ID=$(sbatch  --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --tim
 ```
 
 ### Data preparation
-
-Create a folder for our processing (`$RUN_DIR`) and prepare (create accessory index files) the reference genome (Holland_5 - PAPHI003, Haplotype 2).
+Create a folder for data processing (`$RUN_DIR`), then download and index the reference genome (Coffea Arabica ET-39, [GCF_036785885.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_036785885.1/), @salojarviGenomePopulationGenomics2024).
 
 ```{bash prep-genomes}
-# download the SunUp genome from SharePoint
-rclone copy -P  Papaya_genomics:Genomic_Resources/SunUp_SunSet_genomes_Nature_paper/SunUp /scratch/project/adna/Papaya/SunUp_reference_genome
 # start an interactive job on Bunya
 alias start_interactive_job='salloc --nodes=1 --ntasks-per-node=1 --cpus-per-task=10 --mem=50G --job-name=interactive --time=05:00:00 --partition=general --account=a_agri_genomics srun --export=PATH,TERM,HOME,LANG --pty /bin/bash -l'
 start_interactive_job
-WORK_DIR="/scratch/project/adna/leela"
-
+WORK_DIR="/scratch/project/adna/Fawad"
+mkdir -p $WORK_DIR
+datasets download genome accession GCF_036785885.1 --include gff3,rna,cds,protein,genome,seq-report
+# download the HT-39 genome from NCBI
+rclone copy -P  Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS $WORK_DIR/BGI_WGRS
 CONDA_NAME="genomics"
 conda activate $CONDA_NAME
 # Prepare the commands
 # REFERENCE="/scratch/project/adna/Papaya/SunUp_reference_genome/GWHBFSC00000000" # SunUp genome on Bunya HPC
-REFERENCE="/scratch/project/adna/Papaya/Murdoch_sequencing/papaya_ref_grade/PAPHI003/hap2/PAPHI003_hap2" # Holland_5 genome from Murdoch on Bunya HPC
+REFERENCE="/scratch/project/adna/Fawad/PAPHI003_hap2" # Holland_5 genome from Murdoch on Bunya HPC
 cd $WORK_DIR
 # pigz -cd  $REF_DIR/ArME14.fasta.gz > $GENOME.fa
 # pigz -cd  $REFERENCE.gff.gz > $REFERENCE.gff3
@@ -288,65 +216,21 @@ bwa-mem2 index $REFERENCE.fasta
 
 ```
 
-Download the raw papaya whole-genome resequencing files (`.fastq.gz`) from NCBI SRA (WGS libraries from [PRJNA727683](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA727683/),   [PRJNA693144](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA693144/), [PRJNA970517](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA970517/) and [PRJNA271489](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA271489/)).
-Reference genomes of cultivars Solo SunUp (GMO for PRSV resistance, accession [GWHBFSC00000000](https://ngdc.cncb.ac.cn/gwh/Assembly/23161/show), corresponding to NCBI accession [GCA_021527605.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_021527605.1/), but including gene annotation) and Sunset (accession [GWHBFSD00000000](https://ngdc.cncb.ac.cn/gwh/Assembly/23162/show), corresponding to NCBI [GCA_022788785.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCA_022788785.1/), but including gene annotation; @yueSunUpSunsetGenomes2022) were downloaded from the [Genome Warehouse](https://ngdc.cncb.ac.cn/gwh).
-
-```{bash retrieve-sra-info}
-# create a working directory
-WORK_DIR="/scratch/project/adna/leela"
-mkdir -p $WORK_DIR
-cd $WORK_DIR
-# download Papaya sequencing files from SRA
-JOBNAME="download-papaya-SRA"
-NCORES=6
-MEM=32
-WALLTIME=5:00:00
-CONDA_NAME="genomics"
-conda activate $CONDA_NAME
-# get WGS information from the SRA 
-parallel --dry-run "esearch -db sra -query {} | ~/adna/tools/edirect/efetch -format runinfo  > Cpapaya_{}_SRA_runinfo.csv " ::: PRJNA727683 PRJNA693144 PRJNA970517 PRJNA271489
-# save just the headers
-head -n1 Cpapaya_PRJNA271489_SRA_runinfo.csv > Cpapaya_All_SRA_WGS_runinfo.csv
-
-
-# combining SRAs from all four projects
-cat Cpapaya_PRJNA*_SRA_runinfo.csv | gawk -F "," '$13=="WGS"' >> Cpapaya_All_SRA_WGS_runinfo.csv
-
-#combining all SRAs and sample names from the bioproject and check for duplicates
-
-
-# cat Cpapaya_PRJNA727683_SRA_WGS_runinfo.csv | cut -f 1 -d "," | parallel --dry-run "prefetch {};  parallel-fastq-dump --split-3 -t \$SLURM_CPUS_PER_TASK --sra-id {}/{}.sra --gzip -O {}" > $JOBNAME.cmds
-
-# submit to the cluster
-# ARRAY_ID=$(sbatch -a 1-$(cat $JOBNAME.cmds | wc -l) --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/array.slurm | cut -f 4 -d " ")
-```
-
-Process SRA metadata table to remove duplicates.
-
-```{r sra-data-table}
-
-sra_info <- read_csv("data/Cpapaya_All_SRA_WGS_runinfo.csv")
-sra_info_filtered <- sra_info %>% filter(!grepl("454", Platform)) %>% 
-  mutate(SampleName = gsub("\\s+", "", SampleName)) %>% 
-  distinct(SampleName, spots, bases, .keep_all = TRUE) %>% 
-  write_csv("data/Cpapaya_All_SRA_WGS_runinfo_filtered.csv")
-
-```
 
 ### Mapping to the reference genome{#bwamem-align}
-
-Reads were mapped to the *C. papaya* SunUp reference genome assembled and annotated by the Fujian Agriculture and Forestry University [@yueSunUpSunsetGenomes2022], using bwa-mem2 v2.2.1 [@vasimuddinEfficientArchitectureAwareAcceleration2019]. The alignment files were then coordinate-sorted and PCR duplicates were marked using the `bamsormadup` command from BioBamBam2 v2.0.183 [@tischlerBiobambamToolsRead2014].\
+ , @) reference genome
+Reads were mapped to the *C. arabica* ET-39 reference genome ([GCF_036785885.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_036785885.1/)), which was assembled and annotated by the Coffee Consortium [@salojarviGenomePopulationGenomics2024], using bwa-mem2 v2.2.1 [@vasimuddinEfficientArchitectureAwareAcceleration2019]. The alignment files were then coordinate-sorted and PCR duplicates were marked using the `bamsormadup` command from BioBamBam2 v2.0.183 [@tischlerBiobambamToolsRead2014].\
 Mapping quality and coverage were assessed with Qualimap v.2.2.2-dev [@okonechnikovQualimapAdvancedMultisample2016] and Mosdepth v0.3.10 [@pedersenMosdepthQuickCoverage2018] and were consolidated along with quality-trimming measures into a single, interactive report for each batch using MultiQC v1.21 [@ewelsMultiQCSummarizeAnalysis2016]. 
 <!-- Samples with less than 20% mapping and x15 coverage were removed from the rest of the analysis (see details in the [MultiQC report](raw_data/QC_11_10_2021_multiqc_report.html)). -->
 
 ```{bash process-align-sra-reads}
 # setup workspace
 CONDA_NAME="genomics"
-WORK_DIR="/scratch/project/adna/leela"
+WORK_DIR="/scratch/project/adna/Fawad"
 # save the run date
-#DATE=$(date +%d_%m_%Y)
-#RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
-RUN_DIR="$WORK_DIR/FB_SNP_calling_10_10_2025"
+DATE=$(date +%d_%m_%Y)
+RUN_DIR="$WORK_DIR/FB_SNP_calling_${DATE}"
+# RUN_DIR="$WORK_DIR/FB_SNP_calling_10_10_2025"
 # REFERENCE="/scratch/project/adna/Papaya/SunUp_reference_genome/GWHBFSC00000000"
 REFERENCE="/scratch/project/adna/Papaya/Murdoch_sequencing/papaya_ref_grade/PAPHI003/hap2/PAPHI003_hap2"
 # BAM_DIR="$RUN_DIR/aligned_reads"
