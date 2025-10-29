@@ -176,7 +176,7 @@ mamba install -n base libgcc gnutls libuuid readline cmake git tmux libgfortran 
 
 mamba create -n $CONDA_NAME sra-tools bcbio-gff libgd xorg-libxpm \
                 libpng libjpeg-turbo jpeg snpsift biobambam bwa-mem2 sambamba \
-                libtiff qualimap multiqc bbmap fastp freebayes bedops snvphyl-tools \
+                libtiff qualimap multiqc bbmap fastp freebayes bedops vcf-kit \
                 entrez-direct ncbi-datasets-cli parallel-fastq-dump mosdepth bamtools perl-text-csv 
 # Clean extra space
 # conda update -n base conda
@@ -187,7 +187,7 @@ JOB_ID=$(sbatch  --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --tim
 ```
 
 ### Data preparation
-Create a folder for data processing (`$RUN_DIR`), then download and index the reference genome (Coffea Arabica ET-39, [GCF_036785885.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_036785885.1/), @salojarviGenomePopulationGenomics2024).
+Create a folder for data processing (`$RUN_DIR`), then download and index the reference genome (_Coffea arabica_ ET-39, [GCF_036785885.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_036785885.1/), @salojarviGenomePopulationGenomics2024).
 
 ```{bash prep-genomes}
 # start an interactive job on Bunya
@@ -195,30 +195,33 @@ alias start_interactive_job='salloc --nodes=1 --ntasks-per-node=1 --cpus-per-tas
 start_interactive_job
 WORK_DIR="/scratch/project/adna/Fawad"
 mkdir -p $WORK_DIR
-datasets download genome accession GCF_036785885.1 --include gff3,rna,cds,protein,genome,seq-report
-# download the HT-39 genome from NCBI
+# copy sequencing data from SharePoint
 rclone copy -P  Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS $WORK_DIR/BGI_WGRS
 CONDA_NAME="genomics"
 conda activate $CONDA_NAME
+# download the HT-39 genome from NCBI
+conda run -n $CONDA_NAME datasets download genome accession GCF_036785885.1 --include gff3,rna,cds,protein,genome,seq-report
+unzip ncbi_dataset.zip -d reference_genomes
+
 # Prepare the commands
 # REFERENCE="/scratch/project/adna/Papaya/SunUp_reference_genome/GWHBFSC00000000" # SunUp genome on Bunya HPC
-REFERENCE="/scratch/project/adna/Fawad/PAPHI003_hap2" # Holland_5 genome from Murdoch on Bunya HPC
+REFERENCE="$WORK_DIR/reference_genomes/ncbi_dataset/data/GCF_036785885.1/GCF_036785885.1_Coffea_Arabica_ET-39_HiFi_genomic" # Holland_5 genome from Murdoch on Bunya HPC
+ln -s $WORK_DIR/reference_genomes/ncbi_dataset/data/GCF_036785885.1/genomic.gff $REFERENCE.gff
 cd $WORK_DIR
 # pigz -cd  $REF_DIR/ArME14.fasta.gz > $GENOME.fa
 # pigz -cd  $REFERENCE.gff.gz > $REFERENCE.gff3
-gff2bed < $REFERENCE.gff > $REFERENCE.bed
+conda run -n $CONDA_NAME gff2bed < $REFERENCE.gff > $REFERENCE.bed
 # cat $REFERENCE.fasta.gz | bgzip -c -I $REFERENCE.fasta.gz.gzi -@ $SLURM_CPUS_PER_TASK > $REFERENCE.fasta.gz && samtools faidx $REFERENCE.fasta.gz && bwa-mem2 index $REFERENCE.fasta.gz 
 # samtools faidx $REFERENCE.fasta && bwa-mem2 index $REFERENCE.fasta 
 
-cat $REFERENCE.fasta | bgzip -c > $REFERENCE.fasta.gz
-samtools faidx --fai-idx $REFERENCE.fasta.fai --gzi-idx $REFERENCE.fasta.gz.gzi $REFERENCE.fasta.gz
-bwa-mem2 index $REFERENCE.fasta 
+cat $REFERENCE.fna | bgzip -c > $REFERENCE.fna.gz
+conda run -n $CONDA_NAME samtools faidx --fai-idx $REFERENCE.fna.fai --gzi-idx $REFERENCE.fna.gz.gzi $REFERENCE.fna.gz
+conda run -n $CONDA_NAME bwa-mem2 index $REFERENCE.fna 
 
 ```
 
 
 ### Mapping to the reference genome{#bwamem-align}
- , @) reference genome
 Reads were mapped to the *C. arabica* ET-39 reference genome ([GCF_036785885.1](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_036785885.1/)), which was assembled and annotated by the Coffee Consortium [@salojarviGenomePopulationGenomics2024], using bwa-mem2 v2.2.1 [@vasimuddinEfficientArchitectureAwareAcceleration2019]. The alignment files were then coordinate-sorted and PCR duplicates were marked using the `bamsormadup` command from BioBamBam2 v2.0.183 [@tischlerBiobambamToolsRead2014].\
 Mapping quality and coverage were assessed with Qualimap v.2.2.2-dev [@okonechnikovQualimapAdvancedMultisample2016] and Mosdepth v0.3.10 [@pedersenMosdepthQuickCoverage2018] and were consolidated along with quality-trimming measures into a single, interactive report for each batch using MultiQC v1.21 [@ewelsMultiQCSummarizeAnalysis2016]. 
 <!-- Samples with less than 20% mapping and x15 coverage were removed from the rest of the analysis (see details in the [MultiQC report](raw_data/QC_11_10_2021_multiqc_report.html)). -->
@@ -356,7 +359,8 @@ ARRAY_ID=$(sbatch -a 1-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l) --job-name=$JOBNAME
 
 
 Duplicated `BAM` files (of the same sample that was sequenced more than once) were merged after alignment with samtools v1.21 [@danecekTwelveYearsSAMtools2021; @liSequenceAlignmentMap2009a] or bamtools v2.5.2.
-_!Need to check what happened to read groups of duplicated samples!_
+
+_!Need to check what happens to read groups of duplicated samples!_
 
 ```{bash merge-bams}
 # setup workspace
@@ -539,25 +543,30 @@ find . -name "*.vcf.gz" | parallel --dry-run "bcftools stats -s - {} > {.}.bcfst
 sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/parallel_jobs_run.slurm 
 ```
 
-#### Infer phylogeny from SNPs
-##### Construction of phylogeny tree and population structure analysis
+### Infer phylogeny from SNPs
+#### Construction of phylogeny tree and population structure analysis
 
-From the filtered SNPs the maximum likelihood phylogenetic tree of the 251 papaya accessions will be constructed using [SNPhylo](https://github.com/thlee/SNPhylo) [@leeSNPhyloPipelineConstruct2014].   
-SNPhylo can construct phylogeny based on genome wide SNPs (vcf/hapmap format) by reduce SNP redundancy by linkage disequilibrium (LD) and produces maximum likelihood tree. 
+The alleles of the filtered SNP variants of the 251 papaya accessions were concatenated and aligned into a multiple sequence alignment in `fasta` format with VCF-Kit in preparation for phylogenetic analysis.  
+A maximum likelihood phylogenetic tree of the 251 papaya accessions was then constructed from the alignment file using [RAxML(NG)](https://github.com/amkozlov/raxml-ng/wiki)/[FastTree](https://morgannprice.github.io/fasttree/)/[IQ-TREE](https://iqtree.github.io/) [@kozlovRAxMLNGFastScalable2019; @pineiroVeryFastTree2020; @wongIQTREE3Phylogenomic2025]
 
-> NOte that this pipeline is not maintained, consider using an alternative, such as [SNVphyl](https://snvphyl.readthedocs.io/en/latest/) [@petkauSNVPhylSingleNucleotide2017a] (see a comparison of pipelines in @katzComparativeAnalysisLyveSET2017).
-
+*!try IQ-TREE first!*
 
 ```{bash snp-phylo}
 #install SNPhylo and other packages associated to it.
 # install in an interactive session on a compute node
 start_debug_interactive_job
-CONDA_NAME="genomics"
-mamba create -n $CONDA_NAME snvphyl-tools
+CONDA_NAME="phylo"
+mamba create -n $CONDA_NAME iqtree raxml raxml-ng veryfasttree danielecook::vcf-kit
 
 
 
 ```
+
+
+#### Alternative - using a pipeline to perform the phylogeny
+[SNPhylo](https://github.com/thlee/SNPhylo) [@leeSNPhyloPipelineConstruct2014] can construct phylogeny based on genome wide SNPs (vcf/hapmap format) by reduce SNP redundancy by linkage disequilibrium (LD) and produces maximum likelihood tree. 
+
+> Note that this pipeline is not maintained, consider using an alternative, such as [SNVphyl](https://snvphyl.readthedocs.io/en/latest/) [@petkauSNVPhylSingleNucleotide2017a] (see a comparison of pipelines in @katzComparativeAnalysisLyveSET2017).
 
 
 
