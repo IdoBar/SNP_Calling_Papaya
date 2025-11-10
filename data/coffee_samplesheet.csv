@@ -1,0 +1,57 @@
+sample,sample_name,fastq_1,fastq_2,reference_assembly,metadata_1,metadata_2,metadata_3
+10A,Catimor,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/10A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/10A.R2.fq.gz,,Catimor,C. arabica,Allotetraploid
+11A,Catimor,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/11A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/11A.R2.fq.gz,,Catimor,C. arabica,Allotetraploid
+12A,Catimor,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/12A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/12A.R2.fq.gz,,Catimor,C. arabica,Allotetraploid
+13A,Red_Caturra,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/13A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/13A.R2.fq.gz,,Red Caturra,C. arabica,Allotetraploid
+14A,Red_Caturra,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/14A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/14A.R2.fq.gz,,Red Caturra,C. arabica,Allotetraploid
+15A,Red_Caturra,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/15A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/15A.R2.fq.gz,,Red Caturra,C. arabica,Allotetraploid
+16A,Typica_Sumatra,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/16A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/16A.R2.fq.gz,,Typica Sumatra,C. arabica,Allotetraploid
+17A,Typica_Sumatra,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/17A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/17A.R2.fq.gz,,Typica Sumatra,C. arabica,Allotetraploid
+18A,Typica_Sumatra,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/18A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/18A.R2.fq.gz,,Typica Sumatra,C. arabica,Allotetraploid
+19A,San_Ramon,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/19A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/19A.R2.fq.gz,,San Ramon,C. arabica,Allotetraploid
+1A,Robusta_sin_23,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/1A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/1A.R2.fq.gz,,Robusta sin 23,C. robusta,Diploid
+20A,San_Ramon,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/20A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/20A.R2.fq.gz,,San Ramon,C. arabica,Allotetraploid
+21A,San_Ramon,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/21A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/21A.R2.fq.gz,,San Ramon,C. arabica,Allotetraploid
+22A,KL_Kualam_Pur,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/22A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/22A.R2.fq.gz,,KL (Kualam Pur),C. arabica,Allotetraploid
+23A,KL_Kualam_Pur,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/23A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/23A.R2.fq.gz,,KL (Kualam Pur),C. arabica,Allotetraploid
+24A,KL_Kualam_Pur,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/24A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/24A.R2.fq.gz,,KL (Kualam Pur),C. arabica,Allotetraploid
+25A,Liberica,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/25A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/25A.R2.fq.gz,,Liberica,C. liberica spp,Diploid
+26A,Liberica,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/26A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/26A.R2.fq.gz,,Liberica,C. liberica spp,Diploid
+27A,Liberica,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/27A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/27A.R2.fq.gz,,Liberica,C. liberica spp,Diploid
+28A,Bourbon_T1,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/28A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/28A.R2.fq.gz,,Bourbon-T1,C. arabica,Allotetraploid
+29A,Bourbon_T1,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/29A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/29A.R2.fq.gz,,Bourbon-T1,C. arabica,Allotetraploid
+2A,Robusta_sin_23,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/2A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/2A.R2.fq.gz,,Robusta sin 23,C. robusta,Diploid
+30A,Bourbon_T1,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/30A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/30A.R2.fq.gz,,Bourbon-T1,C. arabica,Allotetraploid
+31A,Mountain_blue_kenya,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/31A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/31A.R2.fq.gz,,Mountain blue kenya,C. arabica,Allotetraploid
+32A,Mountain_blue_kenya,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/32A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/32A.R2.fq.gz,,Mountain blue kenya,C. arabica,Allotetraploid
+33A,Mountain_blue_kenya,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/33A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/33A.R2.fq.gz,,Mountain blue kenya,C. arabica,Allotetraploid
+34A,Gold_coffee,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/34A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/34A.R2.fq.gz,,Gold coffee,C. arabica,Allotetraploid
+35A,Gold_coffee,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/35A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/35A.R2.fq.gz,,Gold coffee,C. arabica,Allotetraploid
+36A,Gold_coffee,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/36A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/36A.R2.fq.gz,,Gold coffee,C. arabica,Allotetraploid
+37A,Pink_bourbon,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/37A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/37A.R2.fq.gz,,Pink bourbon,C. arabica,Allotetraploid
+38A,Pink_bourbon,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/38A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/38A.R2.fq.gz,,Pink bourbon,C. arabica,Allotetraploid
+39A,Pink_bourbon,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/39A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/39A.R2.fq.gz,,Pink bourbon,C. arabica,Allotetraploid
+3A,Robusta_sin_23,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/3A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/3A.R2.fq.gz,,Robusta sin 23,C. robusta,Diploid
+40A,Typica,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/40A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/40A.R2.fq.gz,,Typica,C. arabica,Allotetraploid
+41A,Typica,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/41A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/41A.R2.fq.gz,,Typica,C. arabica,Allotetraploid
+42A,Typica,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/42A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/42A.R2.fq.gz,,Typica,C. arabica,Allotetraploid
+43A,Catuai_Rojo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/43A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/43A.R2.fq.gz,,Catuai Rojo,C. arabica,Allotetraploid
+45A,Catuai_Rojo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/45A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/45A.R2.fq.gz,,Catuai Rojo,C. arabica,Allotetraploid
+46A,Catuai_Amarillo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/46A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/46A.R2.fq.gz,,Catuai Amarillo,C. arabica,Allotetraploid
+48A,Catuai_Amarillo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/48A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/48A.R2.fq.gz,,Catuai Amarillo,C. arabica,Allotetraploid
+49A,K7,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/49A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/49A.R2.fq.gz,,K7,C. arabica,Allotetraploid
+4A,Robusta_11,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/4A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/4A.R2.fq.gz,,Robusta 11,C. robusta,Diploid
+50A,K7,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/50A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/50A.R2.fq.gz,,K7,C. arabica,Allotetraploid
+51A,K7,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/51A_merged.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/51A_merged.R2.fq.gz,,K7,C. arabica,Allotetraploid
+52A,Wild,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/52A_merged.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/52A_merged.R2.fq.gz,,Wild,Coffea (wild),Unknown
+53A,Wild,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/53A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/53A.R2.fq.gz,,Wild,Coffea (wild),Unknown
+54A,Wild,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/54A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/54A.R2.fq.gz,,Wild,Coffea (wild),Unknown
+55A,Robusta_sin_23,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/55A_merged.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/55A_merged.R2.fq.gz,,Robusta sin 23,C. robusta,Diploid
+56A,Bourbon_T2,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/56A_merged.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/56A_merged.R2.fq.gz,,Bourbon-T2,C. arabica,Allotetraploid
+57A,Bourbon_T2,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/57A_merged.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/57A_merged.R2.fq.gz,,Bourbon-T2,C. arabica,Allotetraploid
+58A,Bourbon_T2,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/58A_merged.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/58A_merged.R2.fq.gz,,Bourbon-T2,C. arabica,Allotetraploid
+5A,Robusta_11,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/5A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/5A.R2.fq.gz,,Robusta 11,C. robusta,Diploid
+6A,Robusta_11,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/6A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/6A.R2.fq.gz,,Robusta 11,C. robusta,Diploid
+7A,Mundo_Novo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/7A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/7A.R2.fq.gz,,Mundo Novo,C. arabica,Allotetraploid
+8A,Mundo_Novo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/8A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/8A.R2.fq.gz,,Mundo Novo,C. arabica,Allotetraploid
+9A,Mundo_Novo,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/9A.R1.fq.gz,/scratch/project/adna/Fawad/Coffee_SNVphyl/input_files/9A.R2.fq.gz,,Mundo Novo,C. arabica,Allotetraploid

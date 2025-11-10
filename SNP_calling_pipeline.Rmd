@@ -58,8 +58,24 @@ Fresh leaf samples were collected from 19 coffee genotypes (*Coffea arabica/robu
 
 ### Samples used in this study
 
-```{r sample-metadata, eval = TRUE}
-sample_metadata <- read_xlsx('data/Complete_coffee_genotype_list.xlsx', sheet = 1) 
+```{r sample-metadata, eval = FALSE}
+populations_file <- "data/Complete_coffee_genotype_list.xlsx"
+samples_table <- read_excel(populations_file) %>% 
+  select(-Comment) %>% 
+ #  select(id=Genotype, pop=Identification, Type, Origin) %>% 
+  mutate(# vcf_samples=paste0(Sequencing_ID, "A"),
+         across(where(is.character),.fns = ~replace_na(.x, "Unknown")),
+         across(where(is.character),.fns = str_trim))
+
+snvphyl_samplesheet <- read_csv("data/samplesheet.csv") %>% 
+  select(-any_of(starts_with("metadata"))) %>%
+  left_join(samples_table %>% select(sample_name = Sequencing_ID, Genotype, Species, Ploidy_level)) %>% 
+  rename(metadata_1 = Genotype, 
+         metadata_2 = Species, 
+         metadata_3 = Ploidy_level) %>% 
+  mutate(sample_name = str_replace_all(metadata_1, "[\\(\\)]", ""),
+         sample_name = str_replace_all(sample_name, "[^[:alnum:]]", "_")) 
+# snvphyl_samplesheet %>%   write_csv("data/coffee_samplesheet.csv", na = "")
 # paste0('<a  target=_blank href=', path, '>', file,'</a>' )
 # sample_metadata %>% 
 #   mutate(sra_accession = glue::glue("<a href=https://www.ncbi.nlm.nih.gov/sra/{sra_accession}>{sra_accession}</a>")
@@ -460,14 +476,19 @@ ARRAY_ID=$(sbatch -a 2-$(cat $RUN_DIR/$JOBNAME.cmds | wc -l) --job-name=$JOBNAME
 sacct -n -X -j $ARRAY_ID -o state%20,jobid%20,elapsed%20,exitcode%20
 # filter with PLINK
 JOBNAME="coffee-wgrs-vcf-filter-plink"
-echo "plink2 --vcf $RUN_DIR/$VCF_PREFIX.Q$QUAL.poly.vcf.gz --vcf-require-gt --max-alleles 2 --geno $MAX_MISS --snps-only --maf $MAF --make-bed --out $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.miss$MAX_MISS.biallelic.snps" > $RUN_DIR/$JOBNAME.cmds
+echo "plink2 --vcf $RUN_DIR/$VCF_PREFIX.Q$QUAL.poly.vcf.gz --vcf-require-gt --max-alleles 2 --geno 0 --snps-only --maf $MAF --make-bed --out $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps" > $RUN_DIR/$JOBNAME.cmds
 # submit to the cluster
 JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
-# export to phylip after filtering with bigsnpr
---export phylip
+# export to phylip after clumping with bigsnpr - see https://privefl.github.io/bigsnpr/articles/how-to-PCA.html
+# copy table with loci positions 
+rclone copyto -P Crop_genomics:General/Projects/Fawad_coffee/SNP_Calling_Coffee/data/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps.clumped.loci $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps.clumped.loci
+# prepare commands to filter VCF and convert to Phylip
+JOBNAME="coffee-wgrs-vcf-clump-LD"
+echo "tabix $RUN_DIR/$VCF_PREFIX.Q$QUAL.poly.vcf.gz && bcftools filter $RUN_DIR/$VCF_PREFIX.Q$QUAL.poly.vcf.gz -R $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps.clumped.loci -Ov | bgzip -@ \$SLURM_CPUS_PER_TASK -c > $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps.clumped.vcf.gz && plink2 --vcf $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps.clumped.vcf.gz --export phylip --out $RUN_DIR/$VCF_PREFIX.Q$QUAL.maf$MAF.nomiss.biallelic.snps.clumped" > $RUN_DIR/$JOBNAME.cmds
+# submit to the cluster
+JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
 
-
-
+rclone copy -P --include "$VCF_PREFIX.Q30.maf0.05.nomiss.biallelic.snps.clumped*" $RUN_DIR Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS/FB_SNP_calling_03_11_2025
 ```
 
 ### Infer phylogeny from SNPs
@@ -508,15 +529,63 @@ JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time
 
 ```
 
-> Alternative - perfomr the phylogeny analysis and visualisation in R  
+> Alternative - perform the phylogeny analysis and visualisation in R  
 See details and package recommendations in @zouCommonMethodsPhylogenetic2024.
 
+##### A complete pipeline for phylogenetic inference from sequencing data
 
-> Alternative - using a pipeline to perform the phylogeny  
-[SNPhylo](https://github.com/thlee/SNPhylo) [@leeSNPhyloPipelineConstruct2014] can construct phylogeny based on genome wide SNPs (vcf/hapmap format) by reduce SNP redundancy by linkage disequilibrium (LD) and produces maximum likelihood tree. 
-Note that this pipeline is not maintained, consider using an alternative, such as [SNVphyl](https://snvphyl.readthedocs.io/en/latest/) [@petkauSNVPhylSingleNucleotide2017a] (see a comparison of pipelines in @katzComparativeAnalysisLyveSET2017).
+An alternative for the approach described above is to use a complete pipeline that takes as input the read files and reference genome and performs all the steps, from data QC through alignment, variant calling and filtering and phylogenetic inference as  (see a comparison of pipelines in @katzComparativeAnalysisLyveSET2017).
+
+We attempted to use [snvphylnfc](https://github.com/phac-nml/snvphylnfc) v2.3.3, a Nextflow [@ditommasoNextflowEnablesReproducible2017; @langerEmpoweringBioinformaticsCommunities2024] implementation of the [SNVphyl](https://snvphyl.readthedocs.io/en/latest/) pipeline [@petkauSNVPhylSingleNucleotide2017a].
+
+```{bash snvphyl}
+WORK_DIR="/scratch/project/adna/Fawad"
+RUN_DIR="$WORK_DIR/Coffee_SNVphyl"
+REFERENCE="$WORK_DIR/reference_genomes/ncbi_dataset/data/GCF_036785885.1/GCF_036785885.1_Coffea_Arabica_ET-39_HiFi_genomic"
+FQ_DIR="$RUN_DIR/input_files"
+mkdir -p $RUN_DIR $FQ_DIR && cd $RUN_DIR
+
+# Find fq files from replicated samples to merge
+JOBNAME="merge-fastq"
+WALLTIME=5:00:00
+MEM=32
+NCORES=8
+find $WORK_DIR/BGI_WGRS -size +1M -name "*_1.fq.gz" | xargs dirname | sort | uniq -d | parallel --dry-run  --rpl "{sample} s:.+/::;" "cat {}/*_1.fq.gz > $FQ_DIR/{sample}_merged.R1.fq.gz && cat {}/*_2.fq.gz > $FQ_DIR/{sample}_merged.R2.fq.gz" > $RUN_DIR/$JOBNAME.cmds
+# submit job to cluster
+JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/parallel_jobs_run.slurm | cut -f 4 -d " ")
+# link and rename read files
+# find $WORK_DIR/BGI_WGRS -name "*.fq.gz" | parallel --rpl "{outfile} s:.+?_PLA.+R/(.+)/(.+?)_L\d+_[^_]+_(\d+)\.fq\.gz:\1_\2.R\3.fq.gz:;"  "ln -s {} $FQ_DIR/{outfile}"
+find $WORK_DIR/BGI_WGRS -size +1M -name "*_1.fq.gz" | xargs dirname | sort | uniq -u | parallel --rpl "{sample} s:.+/::;" "ln -s {}/*_1.fq.gz $FQ_DIR/{sample}.R1.fq.gz && ln -s {}/*_2.fq.gz $FQ_DIR/{sample}.R2.fq.gz"
+
+curl -o - https://raw.githubusercontent.com/phac-nml/snvphylnfc/refs/heads/main/assets/samplesheet.csv | head -n1 > samplesheet.csv
+# create sample sheet
+find $FQ_DIR/*.R1.fq.gz | parallel -k --dry-run --rpl "{file2} s:.R1:.R2:; uq()" --rpl "{sample} s:.+\/(\d+A).*.R[12].fq.gz:\1:"  "{sample},{sample},{},{file2}" >> samplesheet.csv
+
+rclone copyto $RUN_DIR/samplesheet.csv Crop_genomics:General/Projects/Fawad_coffee/SNP_Calling_Coffee/data/samplesheet.csv
+# combine sample sheet with metadata in R and copy back to the HPC
+rclone copyto Crop_genomics:General/Projects/Fawad_coffee/SNP_Calling_Coffee/data/coffee_samplesheet.csv $RUN_DIR/coffee_samplesheet.csv
+CONDA_NAME="nextflow"
 
 
+
+# download Nextflow (or install in a conda environment)
+# wget https://github.com/nextflow-io/nextflow/releases/download/v25.10.0/nextflow-25.10.0-dist -P ~/bin/ && chmod +x ~/bin/nextflow-25.10.0-dist
+mamba create -n nextflow nextflow nf-core
+# Send to a compute node to load apptainer and pull images
+JOBNAME="snvphyl-nf"
+WALLTIME=72:00:00
+MEM=32
+NCORES=4
+echo "\$CONDA_PREFIX/bin/nextflow run phac-nml/snvphylnfc --input $RUN_DIR/coffee_samplesheet.csv --refgenome $REFERENCE.fasta --metadata_1_header 'Genotype' --metadata_2_header 'Species' --metadata_3_header 'Ploidy' --outdir results -c ~/.nextflow/bunya.config -profile bunya,apptainer -with-tower -resume" > $RUN_DIR/$JOBNAME.cmds
+# submit job to cluster
+JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time=$WALLTIME --export=ALL,CMDS_FILE=$RUN_DIR/$JOBNAME.cmds,CONDA_NAME=$CONDA_NAME ~/bin/serial_jobs_run.slurm | cut -f 4 -d " ")
+
+
+
+rclone copy -P --include "samplesheet.csv" $RUN_DIR Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS/FB_SNP_calling_03_11_2025
+```
+
+> Alternative - [SNPhylo](https://github.com/thlee/SNPhylo) [@leeSNPhyloPipelineConstruct2014] pipeline to infer phylogeny based on genome wide SNPs (vcf/hapmap format) by reducing SNP redundancy through linkage disequilibrium (LD) pruning and calculating maximum likelihood tree. **Note that this pipeline is not actively maintained**
 
 #### BCFtools stats
 Generate stats from all variant files
@@ -559,9 +628,9 @@ JOB_ID=$(sbatch --job-name=$JOBNAME --cpus-per-task=$NCORES --mem=${MEM}G --time
 # Done!
 
 # Copy html files to SharePoint
-rclone copy -P --exclude "**.html" $RUN_DIR Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS/SNP_calling_24_01_2025
+rclone copy -P --exclude "**.html" $RUN_DIR Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS/FB_SNP_calling_03_11_2025
 # Copy html files to SharePoint
-rclone copy -P --ignore-checksum --ignore-size --include "**.html" $RUN_DIR Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS/SNP_calling_24_01_2025
+rclone copy -P --ignore-checksum --ignore-size --include "**.html" $RUN_DIR Crop_genomics:General/Projects/Fawad_coffee/BGI_WGRS/FB_SNP_calling_03_11_2025
 ```
 
 ------------------------------------------------------------------------

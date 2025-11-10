@@ -1,0 +1,57 @@
+id,Sequencing_ID,Genotype,Replicate,Genotype_code,Species,Ploidy_level,Chromosome_number,Location,Project,Comment
+32A,32,Mountain blue kenya,2,11,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+37A,37,Pink bourbon,1,13,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+34A,34,Gold coffee,1,12,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+18A,18,Typica Sumatra,3,6,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+10A,10,Catimor,1,4,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+15A,15,Red Caturra,3,5,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+51A,51,K7,3,17,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+42A,42,Typica,3,14,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+20A,20,San Ramon,2,7,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+52A,52,Wild,1,18,NA,NA,NA,Australia,Fawad Grafting Project Australia,NA
+2A,2,Robusta sin 23,2,1,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+7A,7,Mundo Novo,1,3,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+35A,35,Gold coffee,2,12,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+19A,19,San Ramon,1,7,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+11A,11,Catimor,2,4,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+3A,3,Robusta sin 23,3,1,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+13A,13,Red Caturra,1,5,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+17A,17,Typica Sumatra,2,6,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+58A,58,Bourbon-T2,3,10,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+49A,49,K7,1,17,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+40A,40,Typica,1,14,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+41A,41,Typica,2,14,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+6A,6,Robusta 11,3,2,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+23A,23,KL (Kualam Pur),2,8,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+8A,8,Mundo Novo,2,3,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+36A,36,Gold coffee,3,12,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+5A,5,Robusta 11,2,2,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+30A,30,Bourbon-T1,3,10,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+46A,46,Catuai Amarillo,1,16,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+28A,28,Bourbon-T1,1,10,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+16A,16,Typica Sumatra,1,6,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+22A,22,KL (Kualam Pur),1,8,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+29A,29,Bourbon-T1,2,10,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+43A,43,Catuai Rojo,1,15,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+27A,27,Liberica,3,9,C. liberica spp,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+1A,1,Robusta sin 23,1,1,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+24A,24,KL (Kualam Pur),3,8,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+9A,9,Mundo Novo,3,3,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+31A,31,Mountain blue kenya,1,11,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+12A,12,Catimor,3,4,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+14A,14,Red Caturra,2,5,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+57A,57,Bourbon-T2,2,10,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+26A,26,Liberica,2,9,C. liberica spp,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+48A,48,Catuai Amarillo,3,16,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+54A,54,Wild,3,18,NA,NA,NA,Australia,Fawad Grafting Project Australia,NA
+53A,53,Wild,2,18,NA,NA,NA,Australia,Fawad Grafting Project Australia,NA
+39A,39,Pink bourbon,3,13,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+56A,56,Bourbon-T2,1,10,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+55A,55,Robusta sin 23,4,1,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+50A,50,K7,2,17,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+33A,33,Mountain blue kenya,3,11,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+38A,38,Pink bourbon,2,13,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+4A,4,Robusta 11,1,2,C. robusta,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+21A,21,San Ramon,3,7,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,NA
+25A,25,Liberica,1,9,C. liberica spp,Diploid,22,Australia,Fawad Grafting Project Australia,NA
+45A,45,Catuai Rojo,3,15,C. arabica,Allotetraploid,44,Australia,Fawad Grafting Project Australia,Low quality DNA (did not pass QC)
