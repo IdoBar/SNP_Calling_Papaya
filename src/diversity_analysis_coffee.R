@@ -2,6 +2,7 @@
 devtools::source_gist("7f63547158ecdbacf31b54a58af0d1cc", 
                       filename = "util.R")
 # install.packages("pak")
+pak::pak(c("pacman", "report"))
 library(pacman)
 # pak::pkg_install(c("green-striped-gecko/dartR", 'YuLab-SMU/ggtree', "hemstrow/snpR"))
 # p_load_gh("Mikata-Project/ggthemr")
@@ -12,12 +13,13 @@ library(pacman)
 pacs <- c("tidyverse", 'RColorBrewer', 'paletteer', 'ggrepel','ggtext', 'glue','janitor', 'plotly',
           'hierfstat' , "qvalue",  'poppr', 'tidytree', 'StAMPP', 'mmod','phangorn', 'phytools',
           "here", 'showtext', 'ape', 'readxl', 'ggtree', "ggstar", "dendextend",  'adegenet',
-          'pheatmap', 'igraph', 'adegraphics', "ggplotify", 'SNPfiltR','bigsnpr',
+          'pheatmap', 'igraph', 'adegraphics', "ggplotify", 'SNPfiltR','bigsnpr', 
           'hemstrow/snpR', "vcfR", "Mikata-Project/ggthemr", 'hexbin', 'inbreedR', 'dartR')
 # git_pacs <- c('hemstrow/snpR', "green-striped-gecko/dartR", "Mikata-Project/ggthemr")
 pak::pak(c(pacs))
 pacman::p_load(char = basename(pacs), install = FALSE)
-
+# Print package versions and citation
+report::report_packages()
 # p_load(char = pacs, install = FALSE) 
 # p_load_gh(git_pacs, install = FALSE)
 # quadprog, raster, mvtnorm,pheatmap, ComplexHeatmap, strataG, diveRsity, DECIPHER, cowplot, ggtree
@@ -84,7 +86,8 @@ gl <- vcfR2genlight(coffee_vcf)
 
 
 samples_metadata <- tibble(id=indNames(gl)) %>% 
-  left_join(samples_table %>% rename(id=Sequencing_ID)) %>%
+  left_join(samples_table %>% rename(id=Sequencing_ID))
+samples_metadata %>%
   write_csv("data/Coffee_wgrs_metadata.csv")
 # 
 
@@ -97,7 +100,7 @@ all(indNames(gl) == samples_metadata$id)
 samples_table %>% filter(!id %in% samples_metadata$id) 
 
 # set consistent strata
-gl
+# gl
 strata_factors <- samples_metadata %>%
   # select(indNames, Location, State, Region, Year, Host, Pathotype, Path_rating, Haplotype, Taxa) %>%
   mutate(across(c("Genotype", "Species", "Ploidy_level"), factor))
